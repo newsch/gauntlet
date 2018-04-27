@@ -1,6 +1,7 @@
 % testgetDist()
 load scan4.mat
-robustLineFit(theta,r,1,20)
+
+robustLineFit(theta,r,0.2,40);
 
 function testgetDist()
     p1 = [0 0];
@@ -19,30 +20,34 @@ function testgetDist()
     getDist(p1,p2,p3)
 end
 
-function robustLineFit(theta, r, d, n)
+function [p1,p2,subset] = robustLineFit(theta, r, d, n)
 %ROBUSTLINEFIT  Fit lines to scanner data with RANSAC
     [ctheta, cr] = cleanData(theta,r);
     [x,y] = polar2cart(deg2rad(ctheta),cr);
     data = [x y];
     choices = randsample(length(data),2*n);
-    tic;
     for i = 2:2:length(choices)
-        p1 = data(choices(i-1),:)
-        p2 = data(choices(i),:)
+        p1 = data(choices(i-1),:);
+        p2 = data(choices(i),:);
         D = getDist(p1,p2,data);  % get distances of all data points to line
-        results(i / 2) = sum(D > d);
+        results.inliers(i / 2) = sum(D < d);
+        results.distances(:,i / 2) = D;
     end
-    toc
-    [sR, sI] = sort(results,'descend');
+    [sR, sI] = sort(results.inliers,'descend');
     sP2 = data(choices(sI*2),:);
     sP1 = data(choices(sI*2 - 1),:);
-    
     figure; hold on
     plot(data(:,1),data(:,2),'ks')  % cleaned lidar data
     for i = 1:3
         quiver(sP1(i,1),sP1(i,2),sP2(i,1)-sP1(i,1),sP2(i,2)-sP1(i,2),'LineWidth',2)
     end
-    legend('data','1','2','3')
+    legend('data','line 1','line 2','line 3')
+    
+    p1 = sP1(1,:);
+    p2 = sP2(1,:);
+    D = results.distances(:,sI(1));
+    subset = data(D < d,:);
+    plot(subset(:,1),subset(:,2),'r*')
 end
 
 function dist = getDist(p1,p2,p3)
