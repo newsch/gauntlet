@@ -13,7 +13,7 @@ for i = 1:30
         fprintf("Ended after %d iterations.\n",i-1)
         break
     end
-    [p1,p2,in,out] = robustLineFit(data(:,1),data(:,2),0.1,floor(length(data)/4), 0.1);
+    [p1,p2,in,out] = robustLineFit(data(:,1),data(:,2),0.1,floor(length(data)/10), 0.1);
     %quiver(p1(1),p1(2),p2(1)-p1(1),p2(2)-p1(2),'LineWidth',2)
     plot(in(:,1),in(:,2),'*')
     data = out;

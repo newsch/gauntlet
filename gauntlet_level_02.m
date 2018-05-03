@@ -38,8 +38,9 @@ function run = runCourse(DRYRUN)
     % build course
     Z = point2field(bob_pos,X,Y);
     for i = 1:length(box_pos)
-        Z = Z - point2field(box_pos(i,:),X,Y);
+        Z = point2field(box_pos(i,:),X,Y);
     end
+    Z = Z + line2field([-1, -1], [-1, 6.5], X, Y, r);
     surf(X,Y,Z)
     [Gx,Gy] = gradient(Z);
     
@@ -72,8 +73,17 @@ function run = runCourse(DRYRUN)
         Z = log(sqrt((X - p1(1)).^2 + (Y - p1(2)).^2));
     end
 
-    function Z = line2field(p1,p2,X,Y)
+    function Z = line2field(p1,p2,X,Y, r)
+        Z = 0;
+        slope = (p2(2) - p1(2)) / (p2(1) - p1(1));
+%         [x_val, x_index] = min(abs(X - p1(1)));
+%         [y_val, y_index] = min(abs(Y - p1(2)));
+        dists = getDistance(p1,p2) / r;
+        for i = 1:dists
+           Z = Z - point2field(p1 + (i*slope*r), X, Y);
+        end
         
+   
     end
     
     function drive(vl,vr,t)
