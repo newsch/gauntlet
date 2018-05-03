@@ -1,3 +1,4 @@
+%%Segment Detection
 % testgetDist()
 load playpensample.mat
 [ctheta, cr] = cleanData(theta,r);
@@ -7,19 +8,19 @@ plot(x,y,'ks')
 plot(0,0,'kO')
 legendata = ["lidar data","neato location"];
 data = [x y];
-for i = 1:10
+for i = 1:30
     if length(data) < 4
         fprintf("Ended after %d iterations.\n",i-1)
         break
     end
-    [p1,p2,in,out] = robustLineFit(data(:,1),data(:,2),0.1,floor(length(data)/4));
-    quiver(p1(1),p1(2),p2(1)-p1(1),p2(2)-p1(2),'LineWidth',2)
+    [p1,p2,in,out] = robustLineFit(data(:,1),data(:,2),0.1,floor(length(data)/4), 0.1);
+    %quiver(p1(1),p1(2),p2(1)-p1(1),p2(2)-p1(2),'LineWidth',2)
     plot(in(:,1),in(:,2),'*')
     data = out;
-    legendata = [legendata, sprintf("round %d line",i)];
-    legendata = [legendata, sprintf("round %d inliers",i)];
+    %legendata = [legendata, sprintf("round %d line",i)];
+    %legendata = [legendata, sprintf("round %d inliers",i)];
 end
-legend(legendata)
+%legend(legendata)
 axis equal
 xlabel 'x pos (meters)'
 ylabel 'y pos (meters)'
@@ -42,7 +43,7 @@ function testgetDist()
     getDist(p1,p2,p3)
 end
 
-function [p1,p2,inliers,outliers] = robustLineFit(x, y, d, n)
+function [p1,p2,inliers,outliers] = robustLineFit(x, y, d, n, segment_length)
 %ROBUSTLINEFIT  Fit lines to scanner data with RANSAC
     data = [x y];
     choices = randsample(length(data),2*n);
@@ -67,8 +68,19 @@ function [p1,p2,inliers,outliers] = robustLineFit(x, y, d, n)
     p2 = sP2(1,:);
     D = results.distances(:,sI(1));
     inliers = data(D < d,:);
-    
-    outliers = data(D >= d,:);
+    [in_elem, in_index] = sort(inliers(:,1),'descend');
+    inliers = inliers(in_index, :);
+    dists = sqrt(sum(diff(inliers).^2, 2));
+%     figure
+%     hold on
+%     
+    inliers = inliers(1:find(dists > segment_length, 1), :);
+    outliers = setdiff(data, inliers, 'rows');
+%     plot(inliers(:,1), inliers(:,2), 'bo')
+%     plot(outliers(:,1), outliers(:,2), 'rs')
+%     plot(data(:,1), data(:,2), 'k*');
+%     hold off
+    return
 end
 
 function dist = getDist(p1,p2,p3)
