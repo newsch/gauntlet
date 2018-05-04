@@ -6,11 +6,13 @@ function run = runCourse(DRYRUN)
 
     bob_pos = [7, 4.5];
     box_pos = [2 3; 4 4.5; 5.5 2; 0 4.5];
+    walls_pos = [-1,-2, -1,5.5; -1,5.5, 8,5.5; 8,5.5, 8,-1; 8,-1, -1,-2];  % rows of two points defining wall line segments
     
     run.init.pos = init_pos;
     run.init.head = init_head;
     run.bob.pos = bob_pos;
-    run.box.pos = box_pos;
+    run.boxes.pos = box_pos;
+    run.walls.pos = walls_pos;
     
     run.wheel_vel = [];
     run.times = [];
@@ -40,10 +42,22 @@ function run = runCourse(DRYRUN)
     for i = 1:length(box_pos)
         Z = Z - point2field(box_pos(i,:),X,Y);
     end
-    Z = Z - line2field([0, 0], [0, 6.5], X, Y, r);
-%     line2field([1 1], [6, 1],X,Y,r);
-%     line2field([1 0], [-5,4],X,Y,r);
+    % add walls
+    for i = 1:length(walls_pos)
+        p1 = walls_pos(i,1:2);
+        p2 = walls_pos(i,3:4);
+        Z = Z - line2field(p1,p2,X,Y,r);
+    end
+    figure;
     surf(X,Y,Z)
+    shading interp
+    ylim([-1 5.5])
+    xlim([-1 8])
+    figure;
+    contour(X,Y,Z,20)
+    ylim([-1 5.5])
+    xlim([-1 8])
+    
     [Gx,Gy] = gradient(Z);
     
     
@@ -80,13 +94,8 @@ function run = runCourse(DRYRUN)
         dy = p2(2) - p1(2);
         dx = p2(1) - p1(1);
         num_points = round(getDistance(p1,p2) / r);
-%         figure; hold on
-%         plot(p1(1),p1(2),'g*')
-%         plot(p2(1),p2(2),'r*')
         for n = 0:num_points
            Z = Z + point2field(p1 + [dx,dy]/num_points*n, X, Y);
-%             new_point = p1 + [dx,dy]/num_points*n;
-%             plot(new_point(1),new_point(2),'bo')
         end
     end
     
