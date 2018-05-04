@@ -33,33 +33,34 @@ function run = runCourse(DRYRUN)
     end
     
     % calculate course
-    r = 0.1;  % resolution
-    x = -1:r:10;
+    r = 0.05;  % resolution
+    x = -3:r:10;
     y = x;
     [X,Y] = meshgrid(x,y);
     % build course
-    Z = point2field(bob_pos,X,Y);
+    %Z = point2field(bob_pos,X,Y,exp(1));
     for i = 1:length(box_pos)
-        Z = Z - point2field(box_pos(i,:),X,Y);
+        %Z = Z - point2field(box_pos(i,:),X,Y,exp(1));
     end
     % add walls
     for i = 1:length(walls_pos)
         p1 = walls_pos(i,1:2);
         p2 = walls_pos(i,3:4);
-        Z = Z - line2field(p1,p2,X,Y,r);
+        disp([p1, p2])
+        Z = -line2field(p1,p2,X,Y,r);
     end
     figure;
     surf(X,Y,Z)
     shading interp
-    ylim([-1 5.5])
-    xlim([-1 8])
-    figure;
-    contour(X,Y,Z,20)
+%     ylim([-1 5.5])
+%     xlim([-1 8])
+    %figure;
+    %contour(X,Y,Z,20)
     ylim([-1 5.5])
     xlim([-1 8])
     
     [Gx,Gy] = gradient(Z);
-    
+
     
     %% calculate and run path
     rot = atan2(bob_pos(2),bob_pos(1));
@@ -85,8 +86,8 @@ function run = runCourse(DRYRUN)
 %     setVel(0,0)
 
     %% functions
-    function Z = point2field(p1,X,Y)
-        Z = log(sqrt((X - p1(1)).^2 + (Y - p1(2)).^2));
+    function Z = point2field(p1,X,Y, scale)
+        Z = log(sqrt((X - p1(1)).^2 + (Y - p1(2)).^2))/log(scale);
     end
 
     function Z = line2field(p1,p2,X,Y,r)
@@ -95,10 +96,10 @@ function run = runCourse(DRYRUN)
         dx = p2(1) - p1(1);
         num_points = round(getDistance(p1,p2) / r);
         for n = 0:num_points
-           Z = Z + point2field(p1 + [dx,dy]/num_points*n, X, Y);
+           Z = Z + point2field(p1 + [dx,dy]/num_points*n, X, Y, exp(20));
         end
     end
-    
+
     function drive(vl,vr,t)
         run.wheel_vel = [run.wheel_vel; [vl,vr]];
         run.times = [run.times; t];
@@ -108,7 +109,7 @@ function run = runCourse(DRYRUN)
         end
     end
 
-    function d = getDistance(p1,p2);
+    function d = getDistance(p1,p2)
     % GETDISTANCE  get the distance between two points
         points = num2cell([p1,p2]);
         [x1,y1,x2,y2] = deal(points{:});
