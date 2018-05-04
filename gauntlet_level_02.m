@@ -32,15 +32,17 @@ function run = runCourse(DRYRUN)
     
     % calculate course
     r = 0.1;  % resolution
-    x = 0:r:10;
+    x = -1:r:10;
     y = x;
     [X,Y] = meshgrid(x,y);
     % build course
     Z = point2field(bob_pos,X,Y);
     for i = 1:length(box_pos)
-        Z = point2field(box_pos(i,:),X,Y);
+        Z = Z - point2field(box_pos(i,:),X,Y);
     end
-    Z = Z + line2field([-1, -1], [-1, 6.5], X, Y, r);
+    Z = Z - line2field([0, 0], [0, 6.5], X, Y, r);
+%     line2field([1 1], [6, 1],X,Y,r);
+%     line2field([1 0], [-5,4],X,Y,r);
     surf(X,Y,Z)
     [Gx,Gy] = gradient(Z);
     
@@ -73,17 +75,19 @@ function run = runCourse(DRYRUN)
         Z = log(sqrt((X - p1(1)).^2 + (Y - p1(2)).^2));
     end
 
-    function Z = line2field(p1,p2,X,Y, r)
+    function Z = line2field(p1,p2,X,Y,r)
         Z = 0;
-        slope = (p2(2) - p1(2)) / (p2(1) - p1(1));
-%         [x_val, x_index] = min(abs(X - p1(1)));
-%         [y_val, y_index] = min(abs(Y - p1(2)));
-        dists = getDistance(p1,p2) / r;
-        for i = 1:dists
-           Z = Z - point2field(p1 + (i*slope*r), X, Y);
+        dy = p2(2) - p1(2);
+        dx = p2(1) - p1(1);
+        num_points = round(getDistance(p1,p2) / r);
+%         figure; hold on
+%         plot(p1(1),p1(2),'g*')
+%         plot(p2(1),p2(2),'r*')
+        for n = 0:num_points
+           Z = Z + point2field(p1 + [dx,dy]/num_points*n, X, Y);
+%             new_point = p1 + [dx,dy]/num_points*n;
+%             plot(new_point(1),new_point(2),'bo')
         end
-        
-   
     end
     
     function drive(vl,vr,t)
