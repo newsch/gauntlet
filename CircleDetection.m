@@ -1,8 +1,8 @@
-function [center, inliers, outliers] = run(theta, r, debug)
+function [center, inliers, outliers] = CircleDetection(x,y,debug)
     % testgetDist()
     %load playpensample.mat
-    [ctheta, cr] = cleanData(theta,r);
-    [x,y] = polar2cart(deg2rad(ctheta),cr);
+%     [ctheta, cr] = cleanData(theta,r);
+%     [x,y] = polar2cart(deg2rad(ctheta),cr);
     figure; hold on
     plot(x,y,'ks')
     plot(0,0,'kO')

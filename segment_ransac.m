@@ -1,13 +1,13 @@
 %%Segment Detection
 % testgetDist()
-function endpoints = segment_ransac(theta, r)
-    %load playpensample.mat
-    [ctheta, cr] = cleanData(theta,r);
-    [x,y] = polar2cart(deg2rad(ctheta),cr);
-    figure; hold on
-    plot(x,y,'ks')
-    plot(0,0,'kO')
-    legendata = ["lidar data","neato location"];
+function endpoints = segment_ransac(x,y)
+%     %load playpensample.mat
+%     [ctheta, cr] = cleanData(theta,r);
+%     [x,y] = polar2cart(deg2rad(ctheta),cr);
+%     figure; hold on
+%     plot(x,y,'ks')
+%     plot(0,0,'kO')
+%     legendata = ["lidar data","neato location"];
     data = [x y];
     endpoints = []
     for i = 1:30
