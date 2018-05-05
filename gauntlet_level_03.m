@@ -21,8 +21,8 @@ function run = runCourse()
     
     % field parameters
     r = 0.05;  % resolution
-    x = -10:r:10;
-    y = -10:r:10;
+    x = -20:r:20;
+    y = -20:r:20;
     [X,Y] = meshgrid(x,y);
     
     % path/location parameters
@@ -33,7 +33,7 @@ function run = runCourse()
     % lidar parameters, functions
     sub = rossubscriber('/stable_scan');
 
-    lidar_to_wheels = 3.4/12;
+    lidar_to_wheels = 3.4/12/3.2;
 
     rotation = @(theta) [cos(theta), sin(theta), 0;
                 -sin(theta), cos(theta), 0;
@@ -43,19 +43,20 @@ function run = runCourse()
                    0, 0, 1];
     %% run
     for j = 1:4
-        neato_pos = pos(:,end);
-        neato_ori = head(end);
+        ci = length(head);  % current index for heading/position
+        neato_pos = pos(:,ci);
+        neato_ori = head(ci);
         % current position = pos(:,end)
         % current heading = head(end)
         %% scan lidar
         scan_message = receive(sub);
-        r = scan_message.Ranges(1:end-1);
-        theta = [0:359]';
-        [ctheta, cr] = cleanData(theta,r);
+        lidr = scan_message.Ranges(1:end-1);
+        lidtheta = [0:359]';
+        [ctheta, cr] = cleanData(lidtheta,lidr);
         [lidx,lidy] = polar2cart(deg2rad(ctheta),cr);
 
-        data = [lidx,lidy,ones([length(lidx),1])];
-        data = (translation(neato_pos(1),neato_pos(2)) * rotation(neato_ori) * translation(lidar_to_wheels, 0) * data')';
+        data = [lidx,lidy,ones([length(lidx),1])]*3.2;  % convert to feet
+        data = (translation(-neato_pos(1),-neato_pos(2)) * rotation(neato_ori) * translation(lidar_to_wheels, 0) * data')';
         glox = data(:,1);
         gloy = data(:,2);
 
@@ -75,7 +76,7 @@ function run = runCourse()
         [Gx,Gy] = gradient(Z,r);
         
         %% calculate path
-        for i = length(pos):length(pos) + 5
+        for i = ci+1:ci + 5
             cpos = pos(:,i-1);
             xi = find_nearest(cpos(1), X(1,:));  % index of x pos
             yi = find_nearest(cpos(2), Y(:,1));  % index of y pos
@@ -88,6 +89,7 @@ function run = runCourse()
         contour(X,Y,Z,100)
         plot(pos(1,:),pos(2,:),'*-')
         plot(pos(1,1),pos(2,1),'*g')
+        plot(pos(1,ci),pos(2,ci),'*y')
         quiver(pos(1,:),pos(2,:),cos(head),sin(head))
         title("Desired path")
         xlabel("X position")
@@ -97,8 +99,8 @@ function run = runCourse()
         hold off;
         axis equal
         %% Calculate commands
-        dist = vecnorm(diff(pos,1,2));
-        rot = diff(head);
+        dist = vecnorm(diff(pos(:,ci:end),1,2));
+        rot = diff(head(ci:end));
         Vr = [];
         Vl = [];
         T = [];
@@ -119,6 +121,9 @@ function run = runCourse()
             Vl = [Vl vs];
             T = [T (norm(dist(:,i)) / vs)];
         end
+        % convert to meters for neato
+        Vl = Vl ./ 3.2;
+        Vr = Vr ./ 3.2;
         %% run course
         fprintf("Max Vr: \t%.3f\n",max(Vr))
         fprintf("Max Vl: \t%.3f\n",max(Vl))
@@ -133,9 +138,9 @@ function run = runCourse()
         run.wheel_vel = [Vl',Vr'];
         run.times = T';
         % Run course if not a dry run
-        if ~DRYRUN
+%         if ~DRYRUN
             drive(T,Vl,Vr)
-        end
+%         end
     end
     
     %% functions
@@ -194,11 +199,11 @@ function Z = point2field(p1,X,Y, scale)
 end
 
 function Z = line2field(p1,p2,X,Y,r)
-    Z = 0;
+    Z = zeros(size(X));
     dy = p2(2) - p1(2);
     dx = p2(1) - p1(1);
-    num_points = round(getDistance(p1,p2) / r);
-    for n = 0:num_points
+    num_points = round(getDistance(p1,p2) / r) + 1;
+    for n = 1:num_points
        Z = Z + point2field(p1 + [dx,dy]/num_points*n, X, Y, exp(1));%/num_points;
     end
 end
