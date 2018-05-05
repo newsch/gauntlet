@@ -9,8 +9,6 @@ function run = runCourse()
     run.init.pos = init_pos;
     run.init.head = init_head;
     run.bob.pos = bob_pos;
-    run.boxes.pos = box_pos;
-    run.walls.pos = walls_pos;
     
     run.wheel_vel = [];
     run.times = [];
@@ -32,22 +30,50 @@ function run = runCourse()
     pos(:,1) = [0;0];  % initial position
     head(1) = 0;  % initial heading
     
+    % lidar parameters, functions
+    sub = rossubscriber('/stable_scan');
+
+    lidar_to_wheels = 3.4/12;
+
+    rotation = @(theta) [cos(theta), sin(theta), 0;
+                -sin(theta), cos(theta), 0;
+                0, 0, 1];
+    translation = @(X, Y) [1, 0, -X;
+                   0, 1, -Y;
+                   0, 0, 1];
+    %% run
     for j = 1:4
+        neato_pos = pos(:,end);
+        neato_ori = head(end);
         % current position = pos(:,end)
         % current heading = head(end)
         %% scan lidar
-        walls_pos = lidar_data;  % get line segments in classroom coordinates
+        scan_message = receive(sub);
+        r = scan_message.Ranges(1:end-1);
+        theta = [0:359]';
+        [ctheta, cr] = cleanData(theta,r);
+        [lidx,lidy] = polar2cart(deg2rad(ctheta),cr);
+
+        data = [lidx,lidy,ones([length(lidx),1])];
+        data = (translation(neato_pos(1),neato_pos(2)) * rotation(neato_ori) * translation(lidar_to_wheels, 0) * data')';
+        glox = data(:,1);
+        gloy = data(:,2);
+
+        %[center, inliers, outliers] = CircleDetection(x,y,false)
+        %x = outliers(:,1);
+        %y = outliers(:,2);
+        endpoints = segment_ransac(glox,gloy);
         %% generate field
+        walls_pos = endpoints;
         Z = point2field(bob_pos,X,Y,exp(1))*20;  % begin w/ BoB position
-        for i = 1:length(box_pos)
-            Z = Z - point2field(box_pos(i,:),X,Y,exp(1))*1;
-        end
         % add walls
         for i = 1:length(walls_pos(:,1))
             p1 = walls_pos(i,1:2);
             p2 = walls_pos(i,3:4);
             Z = Z - line2field(p1,p2,X,Y,0.5)*1;
         end
+        [Gx,Gy] = gradient(Z,r);
+        
         %% calculate path
         for i = length(pos):length(pos) + 5
             cpos = pos(:,i-1);
@@ -122,13 +148,6 @@ function run = runCourse()
         end
     end
 
-    function d = getDistance(p1,p2)
-    % GETDISTANCE  get the distance between two points
-        points = num2cell([p1,p2]);
-        [x1,y1,x2,y2] = deal(points{:});
-        d = sqrt((x2-x1)^2 + (y2-y1)^2);
-    end
-
     function stop(pub)
     % STOP  stop the robot
         disp("Stopping robot")
@@ -146,6 +165,26 @@ function run = runCourse()
 
 end
 
+function [ctheta,cr] = cleanData(theta, r)
+    nonzero_r = r ~= 0;
+    close_r = r < 5;
+    i_clean = nonzero_r & close_r;  % indices of clean data
+    ctheta = theta(i_clean);
+    cr = r(i_clean);
+end
+
+function [X,Y] = polar2cart(theta,r)
+    X = r.*cos(theta);
+    Y = r.*sin(theta);
+end
+
+function d = getDistance(p1,p2)
+% GETDISTANCE  get the distance between two points
+    points = num2cell([p1,p2]);
+    [x1,y1,x2,y2] = deal(points{:});
+    d = sqrt((x2-x1)^2 + (y2-y1)^2);
+end
+
 function i = find_nearest(val,range)
     [v,i] = min(abs(range - val));
 end
@@ -154,7 +193,7 @@ function Z = point2field(p1,X,Y, scale)
         Z = log(sqrt((X - p1(1)).^2 + (Y - p1(2)).^2))/log(scale);
 end
 
-function [Z] = line2field(p1,p2,X,Y,r)
+function Z = line2field(p1,p2,X,Y,r)
     Z = 0;
     dy = p2(2) - p1(2);
     dx = p2(1) - p1(1);
