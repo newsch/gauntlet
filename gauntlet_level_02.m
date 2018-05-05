@@ -39,7 +39,7 @@ function run = runCourse(DRYRUN)
     y = -10:r:10;
     [X,Y] = meshgrid(x,y);
     % build course
-    Z = point2field(bob_pos,X,Y,exp(1))*8;
+    Z = point2field(bob_pos,X,Y,exp(1))*20;
     for i = 1:length(box_pos)
         Z = Z - point2field(box_pos(i,:),X,Y,exp(1))*1;
     end
@@ -47,7 +47,7 @@ function run = runCourse(DRYRUN)
     for i = 1:length(walls_pos(:,1))
         p1 = walls_pos(i,1:2);
         p2 = walls_pos(i,3:4);
-        Z = Z - line2field(p1,p2,X,Y,0.5)*2;
+        Z = Z - line2field(p1,p2,X,Y,0.5)*1;
     end
     % remove Inf
 %     Z(Z==Inf) = 100;
@@ -66,7 +66,7 @@ function run = runCourse(DRYRUN)
 %     hold off
     
     %% Calculating course
-    a = 0.25;  % step size
+    a = 0.5;  % step size
     pos(:,1) = [0;0];
     head(1) = 0;
     for i = 2:40
@@ -147,6 +147,7 @@ function run = runCourse(DRYRUN)
     %% Run course    
     fprintf("Max Vr: \t%.3f\n",max(Vr))
     fprintf("Max Vl: \t%.3f\n",max(Vl))
+    fprintf("Min time: \t%.6f\n",min(T))
     if min(T) < 0
         disp("WARNING: Times less than zero")
     end
