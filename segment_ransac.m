@@ -13,7 +13,7 @@ for i = 1:30
         fprintf("Ended after %d iterations.\n",i-1)
         break
     end
-    [p1,p2,in,out] = robustLineFit(data(:,1),data(:,2),0.1,floor(length(data)/10), 0.1);
+    [p1,p2,in,out] = robustLineFit(data(:,1),data(:,2),0.01,floor(length(data)/2), 0.15);
     %quiver(p1(1),p1(2),p2(1)-p1(1),p2(2)-p1(2),'LineWidth',2)
     plot(in(:,1),in(:,2),'*')
     data = out;
@@ -74,13 +74,13 @@ function [p1,p2,inliers,outliers] = robustLineFit(x, y, d, n, segment_length)
 %     figure
 %     hold on
 %     
-    inliers = inliers(1:find(dists > segment_length, 1), :);
+    if max(dists) >  segment_length
+        inliers = inliers(1:find(dists > segment_length, 1), :);
+    end
     outliers = setdiff(data, inliers, 'rows');
-%     plot(inliers(:,1), inliers(:,2), 'bo')
-%     plot(outliers(:,1), outliers(:,2), 'rs')
-%     plot(data(:,1), data(:,2), 'k*');
-%     hold off
-    return
+    p1 = inliers(1,:);
+    p2 = inliers(end, :);
+    
 end
 
 function dist = getDist(p1,p2,p3)

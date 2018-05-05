@@ -1,4 +1,4 @@
-function [inliers, outliers] = circleDetection(theta, r)
+function [center, inliers, outliers] = run(theta, r, debug)
     % testgetDist()
     %load playpensample.mat
     [ctheta, cr] = cleanData(theta,r);
@@ -10,12 +10,15 @@ function [inliers, outliers] = circleDetection(theta, r)
     data = [x y];
     radius = 0.360892/2;
     [pts, center, inliers,outliers] = Circlefit(x, y, 0.01, 5000, radius);
-    plot(inliers(:,1), inliers(:,2), 'r*')
-    plot(pts(:, 1), pts(:, 2), 'g*')
-    viscircles(center, radius)
-    axis('equal')
+    if debug
+        plot(inliers(:,1), inliers(:,2), 'r*')
+        plot(pts(:, 1), pts(:, 2), 'g*')
+        viscircles(center, radius)
+        axis('equal')
+        legend('lidar points', 'neato', 'inliers', 'refernece points')
+    end
 
-    legend('lidar points', 'neato', 'inliers', 'refernece points')
+    
     function [pts, center,inliers,outliers] = Circlefit(x, y, d, n, r)
     %ROBUSTLINEFIT  Fit lines to scanner data with RANSAC
         data = [x y];
