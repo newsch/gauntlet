@@ -9,7 +9,7 @@ function endpoints = segment_ransac(x,y)
 %     plot(0,0,'kO')
 %     legendata = ["lidar data","neato location"];
     data = [x y];
-    endpoints = []
+    endpoints = [];
     for i = 1:30
         if length(data) < 4
             fprintf("Ended after %d iterations.\n",i-1)
@@ -17,17 +17,17 @@ function endpoints = segment_ransac(x,y)
         end
         [p1,p2,in,out] = robustLineFit(data(:,1),data(:,2),0.01,floor(length(data)/2), 0.15);
         %quiver(p1(1),p1(2),p2(1)-p1(1),p2(2)-p1(2),'LineWidth',2)
-        plot(in(:,1),in(:,2),'*')
+%         plot(in(:,1),in(:,2),'*')
         endpoints = [endpoints; p1, p2];
         data = out;
         %legendata = [legendata, sprintf("round %d line",i)];
         %legendata = [legendata, sprintf("round %d inliers",i)];
     end
-    %legend(legendata)
-    axis equal
-    xlabel 'x pos (meters)'
-    ylabel 'y pos (meters)'
-    title 'RANSAC Implementation'
+%     %legend(legendata)
+%     axis equal
+%     xlabel 'x pos (meters)'
+%     ylabel 'y pos (meters)'
+%     title 'RANSAC Implementation'
 
     function testgetDist()
         p1 = [0 0];
