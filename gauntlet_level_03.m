@@ -12,12 +12,14 @@ function run = runCourse()
     
     run.wheel_vel = [];
     run.times = [];
-
+    
+    fpm = 3.28084;
+    
     %% setup
     max_speed = 0.3;
-    d = 0.24*3.2;
-    rs = 0.15*3.2;
-    vs = 0.15*3.2;
+    d = 0.24*fpm;
+    rs = 0.15*fpm;
+    vs = 0.15*fpm;
     
     % field parameters
     r = 0.05;  % resolution
@@ -33,7 +35,7 @@ function run = runCourse()
     % lidar parameters, functions
     sub = rossubscriber('/stable_scan');
 
-    lidar_to_wheels = 3.4/12/3.2;
+    lidar_to_wheels = 3.4/12;
 
     rotation = @(theta) [cos(theta), sin(theta), 0;
                 -sin(theta), cos(theta), 0;
@@ -55,7 +57,7 @@ function run = runCourse()
         [ctheta, cr] = cleanData(lidtheta,lidr);
         [lidx,lidy] = polar2cart(deg2rad(ctheta),cr);
 
-        data = [lidx*3.2,lidy*3.2,ones([length(lidx),1])];  % convert to feet
+        data = [lidx*fpm,lidy*fpm,ones([length(lidx),1])];  % convert to feet
         adata = (translation(lidar_to_wheels, 0) * data')';
         bdata = (rotation(-neato_ori) * adata')';
         cdata = (translation(-neato_pos(1),-neato_pos(2)) * bdata')';
@@ -82,7 +84,7 @@ function run = runCourse()
         % plot new contour with lidar data
         figure; hold on
         contour(X,Y,Z,100)
-        plot(lidx*3.2,lidy*3.2,'sk')
+        plot(lidx*fpm,lidy*fpm,'sk')
         plot(adata(:,1), adata(:,2), 'b*');
         plot(bdata(:,1), bdata(:,2), 'g*');
         plot(cdata(:,1), cdata(:,2), 'r*');
@@ -121,7 +123,7 @@ function run = runCourse()
         T = [];
         for i = 1:length(rot)
             % rotate
-            rs = 0.15*3.2;  % rotation speed
+            rs = 0.15*fpm;  % rotation speed
             if rot(i) > 0
                 Vr = [Vr rs];
                 Vl = [Vl -rs];
@@ -131,14 +133,14 @@ function run = runCourse()
             end
             T = [T (rot(i) / ((Vr(end) - Vl(end))/d))];
             % advance
-            vs = 0.15*3.2;  % linear velocity speed
+            vs = 0.15*fpm;  % linear velocity speed
             Vr = [Vr vs];
             Vl = [Vl vs];
             T = [T (norm(dist(:,i)) / vs)];
         end
         % convert to meters for neato
-        Vl = Vl ./ 3.2;
-        Vr = Vr ./ 3.2;
+        Vl = Vl ./ fpm;
+        Vr = Vr ./ fpm;
         %% run course
         fprintf("Max Vr: \t%.3f\n",max(Vr))
         fprintf("Max Vl: \t%.3f\n",max(Vl))
@@ -179,7 +181,7 @@ function run = runCourse()
     function setVel(vl, vr)
     % SETVEL  set the wheel velocities (in feet)
         message = rosmessage(vel_pub);
-        message.Data = [vl vr] / 3.2;
+        message.Data = [vl vr] / fpm;
         send(vel_pub, message);
     end
 
