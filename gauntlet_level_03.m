@@ -1,7 +1,7 @@
 function run = runCourse()
 % GAUNTLET_LEVEL_03.m  Run the gauntlet with no obstacles and known BoB
     %% gauntlet info
-    init_pos = [0,0];
+    init_pos = [2,0];
     init_head = 0;
 
     bob_pos = [7, 4.5];
@@ -51,14 +51,18 @@ function run = runCourse()
         %% scan lidar
         scan_message = receive(sub);
         lidr = scan_message.Ranges(1:end-1);
-        lidtheta = [0:359]';
+        lidtheta = (0:359)';
         [ctheta, cr] = cleanData(lidtheta,lidr);
         [lidx,lidy] = polar2cart(deg2rad(ctheta),cr);
 
-        data = [lidx,lidy,ones([length(lidx),1])]*3.2;  % convert to feet
-        data = (translation(-neato_pos(1),-neato_pos(2)) * rotation(neato_ori) * translation(lidar_to_wheels, 0) * data')';
-        glox = data(:,1);
-        gloy = data(:,2);
+        data = [lidx*3.2,lidy*3.2,ones([length(lidx),1])];  % convert to feet
+        adata = (translation(lidar_to_wheels, 0) * data')';
+        bdata = (rotation(-neato_ori) * adata')';
+        cdata = (translation(-neato_pos(1),-neato_pos(2)) * bdata')';
+        
+        %cdata = (translation(neato_pos(1),neato_pos(2)) * rotation(-neato_ori) * translation(lidar_to_wheels, 0) * data')';
+        glox = cdata(:,1);
+        gloy = cdata(:,2);
 
         %[center, inliers, outliers] = CircleDetection(x,y,false)
         %x = outliers(:,1);
@@ -75,6 +79,17 @@ function run = runCourse()
         end
         [Gx,Gy] = gradient(Z,r);
         
+        % plot new contour with lidar data
+        figure; hold on
+        contour(X,Y,Z,100)
+        plot(lidx*3.2,lidy*3.2,'sk')
+        plot(adata(:,1), adata(:,2), 'b*');
+        plot(bdata(:,1), bdata(:,2), 'g*');
+        plot(cdata(:,1), cdata(:,2), 'r*');
+        %plot(glox,gloy,'*k')
+        plot(neato_pos(1),neato_pos(2),'ok')
+        axis equal
+        legend('contour','uncorrected lidar','wheelbase trans', 'rotated', 'position trans','neato pos')
         %% calculate path
         for i = ci+1:ci + 5
             cpos = pos(:,i-1);
@@ -94,8 +109,8 @@ function run = runCourse()
         title("Desired path")
         xlabel("X position")
         ylabel("Y position")
-        ylim([-1 5.5])
-        xlim([-1 8])
+%         ylim([-1 5.5])
+%         xlim([-1 8])
         hold off;
         axis equal
         %% Calculate commands
@@ -172,8 +187,8 @@ end
 
 function [ctheta,cr] = cleanData(theta, r)
     nonzero_r = r ~= 0;
-    close_r = r < 5;
-    i_clean = nonzero_r & close_r;  % indices of clean data
+%     close_r = r < 5;
+    i_clean = nonzero_r; % & close_r;  % indices of clean data
     ctheta = theta(i_clean);
     cr = r(i_clean);
 end
