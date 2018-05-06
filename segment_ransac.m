@@ -1,24 +1,30 @@
 %%Segment Detection
 % testgetDist()
-function endpoints = segment_ransac(x,y)
+
+
+function endpoints = segment_ransac(x,y,debug)
 %     %load playpensample.mat
 %     [ctheta, cr] = cleanData(theta,r);
 %     [x,y] = polar2cart(deg2rad(ctheta),cr);
-%     figure; hold on
-%     plot(x,y,'ks')
-%     plot(0,0,'kO')
+    if debug
+        figure; hold on
+        plot(x,y,'ks')
+        plot(0,0,'kO')
+    end
 %     legendata = ["lidar data","neato location"];
     data = [x y];
     endpoints = [];
-    for i = 1:30
+    for i = 1:35
         if length(data) < 4
             fprintf("Ended after %d iterations.\n",i-1)
             break
         end
-        [p1,p2,in,out] = robustLineFit(data(:,1),data(:,2),0.01,floor(length(data)/2), 0.15);
+        [p1,p2,in,out] = robustLineFit(data(:,1),data(:,2),0.3,floor(length(data)), 0.5);
         %quiver(p1(1),p1(2),p2(1)-p1(1),p2(2)-p1(2),'LineWidth',2)
-%         plot(in(:,1),in(:,2),'*')
-        endpoints = [endpoints; p1, p2];
+        if debug
+            plot(in(:,1),in(:,2),'*')
+        end
+        endpoints = [endpoints; p1, p2, length(in)];
         data = out;
         %legendata = [legendata, sprintf("round %d line",i)];
         %legendata = [legendata, sprintf("round %d inliers",i)];
@@ -49,7 +55,7 @@ function endpoints = segment_ransac(x,y)
     function [p1,p2,inliers,outliers] = robustLineFit(x, y, d, n, segment_length)
     %ROBUSTLINEFIT  Fit lines to scanner data with RANSAC
         data = [x y];
-        choices = randsample(length(data),2*n);
+        choices = randsample(length(data),2*n, 'true');
         for i = 2:2:length(choices)
             p1 = data(choices(i-1),:);
             p2 = data(choices(i),:);

@@ -15,15 +15,20 @@ theta = [0:359]';
 [ctheta, cr] = cleanData(theta,r);
 [x,y] = polar2cart(deg2rad(ctheta),cr);
 
-data = [x,y,ones([length(x),1])];
-data = translation(neato_pos) * rotation(neato_ori) * translation(lidar_to_wheels) * data;
+data = [x*3.28084,y*3.28084,ones([length(x),1])];
+%data = translation(neato_pos) * rotation(neato_ori) * translation(lidar_to_wheels) * data;
 x = data(:,1);
 y = data(:,2);
 
-%[center, inliers, outliers] = CircleDetection(x,y,false)
-%x = outliers(:,1);
-%y = outliers(:,2);
-endpoints = segment_ransac(x,y);
+% [center, inliers, outliers] = CircleDetection(x,y,true);
+% x = outliers(:,1);
+% y = outliers(:,2);
+endpoints = segment_ransac(x,y,true);
+sorted_ends = sort(endpoints(:,5));
+disp(sorted_ends)
+disp(sum(sorted_ends))
+disp(size(sorted_ends));
+disp(sum(sorted_ends((sorted_ends < 15))));
 
 
 

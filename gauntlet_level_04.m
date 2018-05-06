@@ -1,5 +1,6 @@
 function run = runCourse()
-% GAUNTLET_LEVEL_03.m  Run the gauntlet with no obstacles and known BoB
+% GAUNTLET_LEVEL_04.m  Run the gauntlet with no obstacles and known BoB
+% radius
     %% gauntlet info
     PLOT = true;
 %     init_pos = [2,0];
@@ -18,7 +19,7 @@ function run = runCourse()
     
     %% setup
     max_speed = 0.3;
-    d = 0.2455*fpm;
+    d = 0.24*fpm;
     rs = 0.15*fpm;
     vs = 0.15*fpm;
     
@@ -82,7 +83,7 @@ function run = runCourse()
         %% generate field
         walls_pos = endpoints(:, 1:4);
         %walls_pos = endpoints(endpoints(:,end) > 14, 1:4); %get segments with more than 14 points in them
-        Z = point2field(bob_pos,X,Y,exp(1))*24;  % begin w/ BoB position
+        Z = point2field(bob_pos,X,Y,exp(1))*14;  % begin w/ BoB position
         % add walls
         all_peaks = [];
         for i = 1:length(walls_pos(:,1))

@@ -8,8 +8,8 @@ function [center, inliers, outliers] = CircleDetection(x,y,debug)
     plot(0,0,'kO')
     legendata = ["lidar data","neato location"];
     data = [x y];
-    radius = 0.360892/2;
-    [pts, center, inliers,outliers] = Circlefit(x, y, 0.01, 5000, radius);
+    radius = 0.1143;
+    [pts, center, inliers,outliers] = Circlefit(x, y, 0.001, 50000, radius);
     if debug
         plot(inliers(:,1), inliers(:,2), 'r*')
         plot(pts(:, 1), pts(:, 2), 'g*')
