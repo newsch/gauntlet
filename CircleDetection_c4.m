@@ -1,12 +1,17 @@
-function [center, inliers, outliers] = CircleDetection(x,y,debug)
+function [center, inliers, outliers] = CircleDetection_c4(x,y,debug)
     % testgetDist()
     %load playpensample.mat
 %     [ctheta, cr] = cleanData(theta,r);
 %     [x,y] = polar2cart(deg2rad(ctheta),cr);
-    min_arc_pts = 10;
+    min_arc_pts = 8;
     data = [x y];
     radius = 11/24;
-    [pts, center, inliers,outliers] = Circlefit(x, y, 0.003, 50000, radius);
+    [pts, center, radius, inliers,outliers] = Circlefit(x, y, 0.003);
+    figure; hold on
+    for i = 1:size(data, 1)
+       plot(data(i, 1), data(i, 2),'bo');
+       %pause(0.1)
+    end
     if debug
         figure; hold on
         plot(x,y,'ks')
@@ -21,45 +26,45 @@ function [center, inliers, outliers] = CircleDetection(x,y,debug)
     end
 
     
-    function [pts, center,inliers,outliers] = Circlefit(x, y, d, n, r)
+    function [pts, center, r, inliers,outliers] = Circlefit(x, y, d)
     %ROBUSTLINEFIT  Fit lines to scanner data with RANSAC
         data = [x y];
-        choices = randsample(length(data),3*n,'true');
-        for i = 3:3:length(choices)
-            p1 = data(choices(i-2),:);
-            p2 = data(choices(i - 1),:);
-            p3 = data(choices(i), :);
-            center = calc_circle(p1, p2, p3);
+        
+        for i = 1:size(data,1)
+            p1 = [data(mod(i, size(data, 1))+1, 1), data(mod(i, size(data, 1))+1,2)];
+            p2 = [data(mod(i+2,size(data,1))+1, 1), data(mod(i+2,size(data,1))+1,2)];
+            p3 = [data(mod(i+4,size(data,1))+1, 1), data(mod(i+4,size(data,1))+1,2)];
+            [center,r] = calc_circle(p1,p2,p3);
             D = getDist(center, data);  % get distances of all data points to line
-            results.inliers(i / 3) = sum(abs(D - r) < d);
-            results.distances(:,i / 3) = D;
+            if r < 0.5
+                results.inliers(i) = sum(abs(D - r) < d);
+            else
+               results.inliers(i) = 0;
+            end
+            results.distances(:,i) = D;
         end
 
         [sR, sI] = sort(results.inliers,'descend');
-        sP2 = data(choices(sI(1)*3),:);
-        sP1 = data(choices(sI(1)*3 - 1),:);
-        sP3 = data(choices(sI(1)*3 - 2),:);
+        sP2 = data((sI(1)),:);
+        sP1 = data((sI(1)+2),:);
+        sP3 = data((sI(1)+4),:);
 
-    %     figure; hold on
-    %     plot(data(:,1),data(:,2),'ks')  % cleaned lidar data
-    %     for i = 1:3
-    %         quiver(sP1(i,1),sP1(i,2),sP2(i,1)-sP1(i,1),sP2(i,2)-sP1(i,2),'LineWidth',2)
-    %     end
-    %     legend('data','line 1','line 2','line 3')
         pts = [sP1; sP2; sP3];
-        center = calc_circle(sP2, sP1, sP3);
+        [center,r] = calc_circle(sP2, sP1, sP3);
         D = results.distances(:,sI(1));
         inliers = data(abs(D - r) < d, :);
         outliers = data(abs(D - r) > d, :);
-        if length(inliers) < min_arc_pts
+        if ((length(inliers) < min_arc_pts))
            inliers = [];
            outliers = data;
            center = [];
+           r= [];
         end
+        
 
     end
 
-    function center = calc_circle(p1, p2, p3)
+    function [center,r] = calc_circle(p1, p2, p3)
         mid1 = (p2+p1) / 2;
         mid2 = (p3+p2) / 2;
         slope1 = -(p2(1) - p1(1)) / (p2(2)-p1(2));
@@ -67,6 +72,7 @@ function [center, inliers, outliers] = CircleDetection(x,y,debug)
         system = rref([1, -slope1, mid1(2) - (slope1 * mid1(1));
                   1, -slope2, mid2(2) - (slope2 * mid2(1))]);
         center = [system(2, 3), system(1,3)];
+        r = norm(center-p1);
     end
 
     function dist = getDist(p1,p2)

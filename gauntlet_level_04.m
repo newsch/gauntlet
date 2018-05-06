@@ -68,24 +68,39 @@ function run = runCourse()
         [lidx,lidy] = polar2cart(deg2rad(ctheta),cr);
 
         data = [lidx*fpm,lidy*fpm,ones([length(lidx),1])];  % convert to feet
-        adata = (translation(-lidar_to_wheels, 0) * data')';
-        bdata = (rotation(-neato_ori) * adata')';
-        cdata = (translation(-neato_pos(1),-neato_pos(2)) * bdata')';
+        cdata = (translation(-lidar_to_wheels, 0) * data')';
         
         %cdata = (translation(neato_pos(1),neato_pos(2)) * rotation(-neato_ori) * translation(lidar_to_wheels, 0) * data')';
         glox = cdata(:,1);
         gloy = cdata(:,2);
 
-        %[center, inliers, outliers] = CircleDetection(x,y,true)
-        %x = outliers(:,1);
-        %y = outliers(:,2);
-        endpoints = segment_ransac(glox,gloy,true);
+        
+        [endpoints, filtered_data] = segment_ransac_c4(glox,gloy,true);
         %% generate field
-        walls_pos = endpoints(:, 1:4);
-        %walls_pos = endpoints(endpoints(:,end) > 14, 1:4); %get segments with more than 14 points in them
-        Z = point2field(bob_pos,X,Y,exp(1))*14;  % begin w/ BoB position
-        % add walls
+        Z = zeros(size(X));
         all_peaks = [];
+        
+        if ~isempty(endpoints)
+            walls_pos = endpoints(:, 1:4);
+            for i = 1:length(walls_pos(:,1))
+                p1 = walls_pos(i,1:2);
+                p2 = walls_pos(i,3:4);
+                [peaks, new_z] = line2field(p1,p2,X,Y,0.1); 
+                Z = Z - new_z;
+                all_peaks = [all_peaks; peaks];
+            end
+        end
+        [center, inliers, outliers] = CircleDetection(filtered_data(:,1),filtered_data(:,2),true);
+        if ~isempty(center)
+            Z = Z + 15 * point2field(center,X,Y, exp(1));
+            
+        end
+        glox = outliers(:,1);
+        gloy = outliers(:,2);
+        
+        endpoints = segment_ransac(glox,gloy,true);
+        walls_pos = endpoints(:, 1:4);
+        % add walls
         for i = 1:length(walls_pos(:,1))
             p1 = walls_pos(i,1:2);
             p2 = walls_pos(i,3:4);
@@ -93,6 +108,7 @@ function run = runCourse()
             Z = Z - new_z;
             all_peaks = [all_peaks; peaks];
         end
+        
         [Gx,Gy] = gradient(Z,r);
         
         if PLOT
