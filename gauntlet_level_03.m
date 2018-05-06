@@ -1,12 +1,13 @@
 function run = runCourse()
 % GAUNTLET_LEVEL_03.m  Run the gauntlet with no obstacles and known BoB
     %% gauntlet info
-    init_pos = [2,0];
+    PLOT = true;
+%     init_pos = [2,0];
     init_head = 0;
 
     bob_pos = [7, 4.5];
     
-    run.init.pos = init_pos;
+%     run.init.pos = init_pos;
     run.init.head = init_head;
     run.bob.pos = bob_pos;
     
@@ -23,14 +24,22 @@ function run = runCourse()
     
     % field parameters
     r = 0.05;  % resolution
-    x = -20:r:20;
-    y = -20:r:20;
+%     x = -20:r:20;
+%     y = -20:r:20;
+    x = -10:r:10;
+    y = -10:r:10;
+%     x = -1:r:8;
+%     y = -1:6;
     [X,Y] = meshgrid(x,y);
     
     % path/location parameters
     a = 0.5;  % step size
     pos(:,1) = [0;0];  % initial position
     head(1) = 0;  % initial heading
+    
+    rs = 0.1*fpm;  % rotation speed
+    vs = 0.15*fpm;  % linear velocity speed
+
     
     % lidar parameters, functions
     sub = rossubscriber('/stable_scan');
@@ -44,7 +53,7 @@ function run = runCourse()
                    0, 1, -Y;
                    0, 0, 1];
     %% run
-    for j = 1:4
+    for j = 1:8
         ci = length(head);  % current index for heading/position
         neato_pos = pos(:,ci);
         neato_ori = head(ci);
@@ -72,7 +81,7 @@ function run = runCourse()
         endpoints = segment_ransac(glox,gloy);
         %% generate field
         walls_pos = endpoints;
-        Z = point2field(bob_pos,X,Y,exp(1))*20;  % begin w/ BoB position
+        Z = point2field(bob_pos,X,Y,exp(1))*17;  % begin w/ BoB position
         % add walls
         for i = 1:length(walls_pos(:,1))
             p1 = walls_pos(i,1:2);
@@ -81,17 +90,19 @@ function run = runCourse()
         end
         [Gx,Gy] = gradient(Z,r);
         
+        if PLOT
         % plot new contour with lidar data
         figure; hold on
-        contour(X,Y,Z,100)
-        plot(lidx*fpm,lidy*fpm,'sk')
-        plot(adata(:,1), adata(:,2), 'b*');
-        plot(bdata(:,1), bdata(:,2), 'g*');
-        plot(cdata(:,1), cdata(:,2), 'r*');
+        contour(X,Y,Z,100,'DisplayName','contour')
+        plot(lidx*fpm,lidy*fpm,'sk','DisplayName','uncorrected lidar')
+%         plot(adata(:,1), adata(:,2), 'b*','DisplayName','wheelbase trans');
+%         plot(bdata(:,1), bdata(:,2), 'g*','DisplayName','rotated');
+        plot(cdata(:,1), cdata(:,2), 'r*','DisplayName','position trans');
         %plot(glox,gloy,'*k')
-        plot(neato_pos(1),neato_pos(2),'ok')
-        axis equal
-        legend('contour','uncorrected lidar','wheelbase trans', 'rotated', 'position trans','neato pos')
+        plot(neato_pos(1),neato_pos(2),'ok','DisplayName','neato pos')
+%         axis equal
+%         legend('contour','uncorrected lidar','wheelbase trans', 'rotated', 'position trans','neato pos')
+        end
         %% calculate path
         for i = ci+1:ci + 5
             cpos = pos(:,i-1);
@@ -102,12 +113,13 @@ function run = runCourse()
             pos(:,i) = cpos + (g/vecnorm(g)).*a;
         end
         %% plot path
-        figure; hold on;
-        contour(X,Y,Z,100)
-        plot(pos(1,:),pos(2,:),'*-')
-        plot(pos(1,1),pos(2,1),'*g')
-        plot(pos(1,ci),pos(2,ci),'*y')
-        quiver(pos(1,:),pos(2,:),cos(head),sin(head))
+        if PLOT
+%         figure; hold on;
+%         contour(X,Y,Z,100)
+        plot(pos(1,:),pos(2,:),'*-','DisplayName','path points')
+        plot(pos(1,1),pos(2,1),'*g','DisplayName','initial position')
+        plot(pos(1,ci),pos(2,ci),'*y','DisplayName','current position')
+        quiver(pos(1,:),pos(2,:),cos(head),sin(head),'DisplayName','path headings')
         title("Desired path")
         xlabel("X position")
         ylabel("Y position")
@@ -115,6 +127,8 @@ function run = runCourse()
 %         xlim([-1 8])
         hold off;
         axis equal
+        legend()
+        end
         %% Calculate commands
         dist = vecnorm(diff(pos(:,ci:end),1,2));
         rot = diff(head(ci:end));
@@ -123,7 +137,6 @@ function run = runCourse()
         T = [];
         for i = 1:length(rot)
             % rotate
-            rs = 0.15*fpm;  % rotation speed
             if rot(i) > 0
                 Vr = [Vr rs];
                 Vl = [Vl -rs];
@@ -133,7 +146,6 @@ function run = runCourse()
             end
             T = [T (rot(i) / ((Vr(end) - Vl(end))/d))];
             % advance
-            vs = 0.15*fpm;  % linear velocity speed
             Vr = [Vr vs];
             Vl = [Vl vs];
             T = [T (norm(dist(:,i)) / vs)];
